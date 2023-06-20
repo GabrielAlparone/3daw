@@ -1,0 +1,77 @@
+const mysql = require('mysql');
+const express = require('express');
+const app = express();
+
+// Configuração de conexão com o banco de dados
+const connection = mysql.createConnection({
+  host: 'localhost',
+  user: 'seu_usuario',
+  password: 'sua_senha',
+  database: 'nome_do_banco_de_dados'
+});
+
+// Conectar ao banco de dados
+connection.connect((err) => {
+  if (err) {
+    console.error('Erro ao conectar ao banco de dados:', err);
+    return;
+  }
+  console.log('Conexão estabelecida com sucesso!');
+});
+
+// Rota para criar uma nova pergunta
+app.post('/criar-pergunta', (req, res) => {
+  // Verificar se todos os campos foram preenchidos
+  const { pergunta, resposta1, resposta2, resposta3, resposta4, correta } = req.body;
+  if (pergunta && resposta1 && resposta2 && resposta3 && resposta4 && correta) {
+    // Criar um novo item de pergunta com as informações fornecidas
+    const itemPergunta = {
+      pergunta,
+      respostas: [resposta1, resposta2, resposta3, resposta4],
+      correta
+    };
+
+    // Salvar a pergunta no banco de dados
+    connection.query('INSERT INTO perguntas SET ?', itemPergunta, (err, result) => {
+      if (err) {
+        console.error('Erro ao criar pergunta:', err);
+        res.status(500).send('Erro ao criar pergunta');
+        return;
+      }
+
+      console.log('Pergunta criada com sucesso!');
+      res.send('Pergunta criada com sucesso!');
+    });
+  } else {
+    res.status(400).send('Por favor, preencha todos os campos!');
+  }
+});
+
+// Rota para exibir todas as perguntas
+app.get('/perguntas', (req, res) => {
+  // Obter todas as perguntas do banco de dados
+  connection.query('SELECT * FROM perguntas', (err, results) => {
+    if (err) {
+      console.error('Erro ao obter perguntas:', err);
+      res.status(500).send('Erro ao obter perguntas');
+      return;
+    }
+
+    if (results.length > 0) {
+      const perguntas = results.map((row) => ({
+        pergunta: row.pergunta,
+        respostas: [row.resposta1, row.resposta2, row.resposta3, row.resposta4],
+        correta: row.correta
+      }));
+
+      res.json(perguntas);
+    } else {
+      res.send('Nenhuma pergunta criada!');
+    }
+  });
+});
+
+// Iniciar o servidor na porta 3000
+app.listen(3000, () => {
+  console.log('Servidor iniciado na porta 3000');
+});
